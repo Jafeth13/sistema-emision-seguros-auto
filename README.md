@@ -1,52 +1,79 @@
 # Sistema Emisión de Seguros Auto
 
-API REST desarrollada en ASP.NET Core 8 para la emisión de pólizas de seguros de automóvil.
+API REST desarrollada en ASP.NET Core 8 para la gestión y emisión de pólizas de seguros de automóvil.
 
-## Tecnologías Utilizadas
+La solución fue desarrollada utilizando una arquitectura por capas y separación física de responsabilidades mediante proyectos independientes para la API, Aplicación, Dominio e Infraestructura.
+
+---
+
+# Tecnologías Utilizadas
 
 - ASP.NET Core 8
 - Entity Framework Core 8
 - SQL Server
 - Swagger / OpenAPI
-- Patrón Repository
-- Arquitectura Controller - Service - Repository
+- Dependency Injection
+- Repository Pattern
+- Middleware Global de Excepciones
+- Arquitectura por Capas
 
-## Funcionalidades
+---
 
-### Clientes
+# Arquitectura de la Solución
 
-- GET /api/clientes
-- GET /api/clientes/{id}
-- POST /api/clientes
+La solución está organizada en cuatro proyectos:
 
-### Coberturas
+## SistemaEmisionSegurosAuto.API
 
-- GET /api/coberturas
-- GET /api/coberturas/{id}
-- POST /api/coberturas
-- PUT /api/coberturas/{id}
-- DELETE /api/coberturas/{id}
+Contiene la capa de presentación.
 
-### Pólizas
+- Controllers
+- Middleware
+- Program.cs
+- appsettings.json
+- Configuración de Swagger
 
-- POST /api/polizas/emitir
-- GET /api/polizas
-- GET /api/polizas/{id}
+## SistemaEmisionSegurosAuto.Aplicacion
 
-## Regla de Negocio
+Contiene la lógica de aplicación.
 
-La PrimaTotal de la póliza se calcula en el servidor como la suma de los montos de las coberturas seleccionadas.
+- DTOs
+- Interfaces
+- Servicios
+- Excepciones de negocio
 
-## Modelo de Datos
+## SistemaEmisionSegurosAuto.Dominio
 
-### Clientes
+Contiene las entidades del dominio.
+
+- Cliente
+- Vehiculo
+- Cobertura
+- Poliza
+- PolizaCobertura
+
+## SistemaEmisionSegurosAuto.Infraestructura
+
+Contiene la implementación del acceso a datos.
+
+- ApplicationDbContext
+- Repositorios
+- Migraciones
+- Configuración de Entity Framework Core
+- Dependency Injection
+
+---
+
+# Modelo de Datos
+
+## Clientes
 
 - Id
 - Nombre
 - Identificacion
 - Correo
 
-### Vehiculos
+## Vehiculos
 
 - Id
 - Placa
@@ -55,13 +82,14 @@ La PrimaTotal de la póliza se calcula en el servidor como la suma de los montos
 - Anio
 - ValorComercial
 
-### Coberturas
+## Coberturas
 
 - Id
 - Nombre
 - MontoCobertura
+- Activo
 
-### Polizas
+## Polizas
 
 - Id
 - NumeroPoliza
@@ -71,66 +99,307 @@ La PrimaTotal de la póliza se calcula en el servidor como la suma de los montos
 - SumaAsegurada
 - PrimaTotal
 
-### PolizaCoberturas
+## PolizaCoberturas
 
-Tabla intermedia para relacionar pólizas con coberturas.
+Tabla de relación entre pólizas y coberturas.
 
-## Configuración
+- PolizaId
+- CoberturaId
 
-Actualizar la cadena de conexión en:
+---
+
+# Funcionalidades Implementadas
+
+## Catálogo de Clientes
+
+- Obtener clientes
+- Obtener cliente por id
+- Crear cliente
+
+## Catálogo de Coberturas
+
+- Obtener coberturas
+- Obtener cobertura por id
+- Crear cobertura
+- Actualizar cobertura
+- Eliminar cobertura (borrado lógico)
+
+## Emisión de Pólizas
+
+- Emisión de pólizas de automóvil
+- Cálculo automático de PrimaTotal
+- Generación automática de número de póliza
+- Asociación de cliente, vehículo y coberturas
+- Uso de transacciones para garantizar integridad de datos
+
+## Consulta de Pólizas
+
+- Consulta individual por id
+- Historial completo de pólizas emitidas
+
+---
+
+# Reglas de Negocio
+
+- El cliente debe existir para emitir una póliza.
+- La póliza debe incluir al menos una cobertura.
+- La PrimaTotal se calcula en el servidor sumando los montos de las coberturas seleccionadas.
+- El número de póliza se genera automáticamente.
+- La emisión utiliza transacciones para garantizar consistencia en los datos.
+- Las coberturas utilizan borrado lógico para preservar la trazabilidad histórica de las pólizas emitidas.
+
+---
+
+# Endpoints
+
+## Clientes
+
+### Obtener todos los clientes
+
+```http
+GET /api/clientes
+```
+
+### Obtener cliente por id
+
+```http
+GET /api/clientes/{id}
+```
+
+### Crear cliente
+
+```http
+POST /api/clientes
+```
+
+Ejemplo:
 
 ```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=localhost;Database=SegurosAutoDB;Trusted_Connection=True;TrustServerCertificate=True;"
+{
+  "nombre": "Jafeth Matamoros",
+  "identificacion": "305310870",
+  "correo": "jafeth@test.com"
 }
 ```
 
-## Base de Datos
+---
 
-El proyecto utiliza Entity Framework Core con migraciones.
+## Coberturas
 
-Ejecutar:
+### Obtener coberturas
+
+```http
+GET /api/coberturas
+```
+
+### Obtener cobertura por id
+
+```http
+GET /api/coberturas/{id}
+```
+
+### Crear cobertura
+
+```http
+POST /api/coberturas
+```
+
+Ejemplo:
+
+```json
+{
+  "nombre": "Robo",
+  "montoCobertura": 100
+}
+```
+
+### Actualizar cobertura
+
+```http
+PUT /api/coberturas/{id}
+```
+
+### Eliminar cobertura
+
+```http
+DELETE /api/coberturas/{id}
+```
+
+> El endpoint realiza borrado lógico estableciendo el campo Activo en false.
+
+---
+
+## Pólizas
+
+### Emitir póliza
+
+```http
+POST /api/polizas/emitir
+```
+
+Ejemplo:
+
+```json
+{
+  "clienteId": 1,
+  "vehiculo": {
+    "placa": "ABC123",
+    "marca": "Toyota",
+    "modelo": "Corolla",
+    "anio": 2022,
+    "valorComercial": 15000
+  },
+  "coberturasIds": [1, 2, 3]
+}
+```
+
+### Obtener historial de pólizas
+
+```http
+GET /api/polizas
+```
+
+### Obtener póliza por id
+
+```http
+GET /api/polizas/{id}
+```
+
+---
+
+# Manejo de Errores
+
+La aplicación implementa manejo centralizado de excepciones mediante middleware global.
+
+## Códigos HTTP
+
+### 201 Created
+
+Recurso creado exitosamente.
+
+### 400 Bad Request
+
+Error de validación o regla de negocio.
+
+Ejemplo:
+
+```json
+{
+  "message": "Debe seleccionar al menos una cobertura"
+}
+```
+
+### 404 Not Found
+
+Recurso no encontrado.
+
+Ejemplo:
+
+```json
+{
+  "message": "Cliente no encontrado"
+}
+```
+
+### 500 Internal Server Error
+
+Error inesperado del servidor.
+
+---
+
+# Configuración de Base de Datos
+
+Modificar la cadena de conexión en:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Database=SegurosAutoDB;Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}
+```
+
+---
+
+# Migraciones
+
+Las migraciones de Entity Framework Core se encuentran incluidas en el proyecto:
+
+```text
+SistemaEmisionSegurosAuto.Infraestructura
+└── Migrations
+```
+
+Para crear la base de datos ejecutar:
 
 ```powershell
-Update-Database
+Update-Database -Project SistemaEmisionSegurosAuto.Infraestructura -StartupProject SistemaEmisionSegurosAuto.API
+```
+
+---
+
+# Ejecución del Proyecto
+
+## 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/Jafeth13/sistema-emision-seguros-auto.git
+```
+
+## 2. Configurar la cadena de conexión
+
+Actualizar el archivo:
+
+```text
+appsettings.json
+```
+
+## 3. Ejecutar migraciones
+
+```powershell
+Update-Database -Project SistemaEmisionSegurosAuto.Infraestructura -StartupProject SistemaEmisionSegurosAuto.API
+```
+
+## 4. Ejecutar la API
+
+Desde Visual Studio:
+
+```text
+F5
 ```
 
 o
 
-```powershell
-dotnet ef database update
-```
-
-para crear la base de datos y las tablas.
-
-## Ejecución
-
-1. Clonar el repositorio.
-2. Configurar la cadena de conexión.
-3. Ejecutar las migraciones.
-4. Ejecutar el proyecto.
-
-```powershell
+```bash
 dotnet run
 ```
 
-5. Abrir Swagger:
+## 5. Abrir Swagger
 
 ```text
 https://localhost:xxxx/swagger
 ```
 
-## Manejo de Errores
+---
 
-La API implementa:
+# Características Técnicas
 
-- 201 Created
-- 400 Bad Request
-- 404 Not Found
-- 500 Internal Server Error
+- Arquitectura por capas.
+- Separación física por proyectos.
+- Entity Framework Core.
+- SQL Server.
+- Repository Pattern.
+- Dependency Injection.
+- Middleware Global de Excepciones.
+- Excepciones personalizadas.
+- DTOs.
+- Transacciones.
+- Swagger.
+- Borrado lógico de coberturas.
+- Migraciones Code First.
 
-mediante middleware centralizado de excepciones.
+---
 
-## Autor
+# Autor
 
-Jafeth Matamoros Cordero
+**Jafeth Matamoros Cordero**
